@@ -1,0 +1,188 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		A10000012C85000000000001 /* CalendarApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000012C85000000000001 /* CalendarApp.swift */; };
+		A10000022C85000000000002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000022C85000000000002 /* ContentView.swift */; };
+		A10000032C85000000000003 /* EventKitManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000032C85000000000003 /* EventKitManager.swift */; };
+		A10000042C85000000000004 /* HapticManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000042C85000000000004 /* HapticManager.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		C10000002C85000000000000 /* LuminaCalendar.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LuminaCalendar.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B10000012C85000000000001 /* CalendarApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarApp.swift; sourceTree = "<group>"; };
+		B10000022C85000000000002 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		B10000032C85000000000003 /* EventKitManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventKitManager.swift; sourceTree = "<group>"; };
+		B10000042C85000000000004 /* HapticManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HapticManager.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		D10000002C85000000000000 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		E10000002C85000000000000 = {
+			isa = PBXGroup;
+			children = (
+				B10000012C85000000000001 /* CalendarApp.swift */,
+				B10000022C85000000000002 /* ContentView.swift */,
+				B10000032C85000000000003 /* EventKitManager.swift */,
+				B10000042C85000000000004 /* HapticManager.swift */,
+				C10000002C85000000000000 /* LuminaCalendar.app */,
+			);
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		F10000002C85000000000000 /* LuminaCalendar */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = G10000002C85000000000000 /* Build configuration list for PBXNativeTarget "LuminaCalendar" */;
+			buildPhases = (
+				H10000002C85000000000000 /* Sources */,
+				D10000002C85000000000000 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = LuminaCalendar;
+			productName = LuminaCalendar;
+			productReference = C10000002C85000000000000 /* LuminaCalendar.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		J10000002C85000000000000 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1500;
+				LastUpgradeCheck = 1500;
+			};
+			buildConfigurationList = K10000002C85000000000000 /* Build configuration list for PBXProject "LuminaCalendar" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = E10000002C85000000000000;
+			productRefGroup = E10000002C85000000000000;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				F10000002C85000000000000 /* LuminaCalendar */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		H10000002C85000000000000 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A10000012C85000000000001 /* CalendarApp.swift in Sources */,
+				A10000022C85000000000002 /* ContentView.swift in Sources */,
+				A10000032C85000000000003 /* EventKitManager.swift in Sources */,
+				A10000042C85000000000004 /* HapticManager.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		L10000002C85000000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSCalendarsUsageDescription = "Lumina Calendar needs access to your system calendars to show and sync your events.";
+				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "Lumina Calendar needs full access to your calendars to create, edit, and sync your events.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.lumina.calendar;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		L10000002C85000000000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSCalendarsUsageDescription = "Lumina Calendar needs access to your system calendars to show and sync your events.";
+				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "Lumina Calendar needs full access to your calendars to create, edit, and sync your events.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.lumina.calendar;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		L10000002C85000000000003 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				SDKROOT = auto;
+			};
+			name = Debug;
+		};
+		L10000002C85000000000004 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				SDKROOT = auto;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		G10000002C85000000000000 /* Build configuration list for PBXNativeTarget "LuminaCalendar" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				L10000002C85000000000001 /* Debug */,
+				L10000002C85000000000002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		K10000002C85000000000000 /* Build configuration list for PBXProject "LuminaCalendar" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				L10000002C85000000000003 /* Debug */,
+				L10000002C85000000000004 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = J10000002C85000000000000 /* Project object */;
+}

@@ -11,7 +11,6 @@ public class EventKitManager: ObservableObject {
     @Published public var isAuthorized: Bool = false
     @Published public var events: [EKEvent] = []
     @Published public var selectedDateEvents: [EKEvent] = []
-    
     @Published public var userCalendars: [EKCalendar] = []
     
     private init() {
