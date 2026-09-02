@@ -260,12 +260,21 @@
             <div class="form-group">
               <label for="icloudPassword">App-Specific Password</label>
               <input type="password" id="icloudPassword" placeholder="xxxx-xxxx-xxxx-xxxx" autocomplete="current-password">
-              <small class="help-text">Generate an App-Specific Password at <a href="https://appleid.apple.com" target="_blank" rel="noopener">appleid.apple.com</a></small>
+              <small class="help-text" style="color: var(--text-tertiary); font-size: 0.75rem;">Generate at <a href="https://appleid.apple.com" target="_blank" rel="noopener" style="color: var(--accent-apple-blue);">appleid.apple.com</a></small>
             </div>
+
+            <div class="form-group" style="margin-top: 10px;">
+              <label for="icloudFeedUrl">iCloud Calendar Share / Webcal Link (Instant Sync)</label>
+              <input type="url" id="icloudFeedUrl" placeholder="webcal://p71-caldav.icloud.com/.../calendar.ics">
+              <small class="help-text" style="color: var(--text-tertiary); font-size: 0.75rem;">In iCloud.com or Apple Calendar app: Share Calendar → Public Link</small>
+            </div>
+
+            <!-- Connected Calendars List -->
+            <div id="icloudCalendarList" class="icloud-calendars-list" style="margin-top: 12px;"></div>
 
             <div class="modal-footer">
               <button type="button" id="exportIcsBtn" class="secondary-btn haptic-tap">Export .ics</button>
-              <button type="submit" id="saveIcloudBtn" class="primary-btn haptic-tap">Connect iCloud</button>
+              <button type="submit" id="saveIcloudBtn" class="primary-btn haptic-tap">Sync iCloud Calendars</button>
             </div>
           </form>
         </div>

@@ -12,6 +12,8 @@ public class EventKitManager: ObservableObject {
     @Published public var events: [EKEvent] = []
     @Published public var selectedDateEvents: [EKEvent] = []
     
+    @Published public var userCalendars: [EKCalendar] = []
+    
     private init() {
         checkPermission()
     }
@@ -22,9 +24,13 @@ public class EventKitManager: ObservableObject {
         switch status {
         case .authorized, .fullAccess:
             self.isAuthorized = true
+            self.fetchUserCalendars()
             self.fetchEventsForCurrentMonth()
         default:
             self.isAuthorized = false
+            Task {
+                await self.requestAccess()
+            }
         }
     }
     
@@ -39,11 +45,21 @@ public class EventKitManager: ObservableObject {
                 self.isAuthorized = granted
             }
             if self.isAuthorized {
+                self.fetchUserCalendars()
                 self.fetchEventsForCurrentMonth()
             }
         } catch {
             print("EventKit authorization failed: \(error.localizedDescription)")
             self.isAuthorized = false
+        }
+    }
+
+    /// Retrieve list of all iCloud and system calendars
+    public func fetchUserCalendars() {
+        guard isAuthorized else { return }
+        let cals = eventStore.calendars(for: .event)
+        DispatchQueue.main.async {
+            self.userCalendars = cals
         }
     }
     
@@ -54,10 +70,12 @@ public class EventKitManager: ObservableObject {
         let calendar = Calendar.current
         guard let monthInterval = calendar.dateInterval(of: .month, for: date) else { return }
         
-        let predicate = eventStore.predicateForEvents(withStart: monthInterval.start, end: monthInterval.end, calendars: nil)
+        let cals = eventStore.calendars(for: .event)
+        let predicate = eventStore.predicateForEvents(withStart: monthInterval.start, end: monthInterval.end, calendars: cals.isEmpty ? nil : cals)
         let fetched = eventStore.events(matching: predicate)
         
         DispatchQueue.main.async {
+            self.userCalendars = cals
             self.events = fetched.sorted(by: { $0.startDate < $1.startDate })
         }
     }
