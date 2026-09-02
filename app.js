@@ -74,55 +74,9 @@
   const haptics = new HapticEngine();
 
   // ==========================================
-  // 2. INITIAL SAMPLE EVENTS DATA
+  // 2. INITIAL EVENTS DATA (CLEAN SLATE)
   // ==========================================
-  const INITIAL_EVENTS = [
-    {
-      id: 'evt-1',
-      title: ' Lumina SwiftUI & Web Release',
-      startDate: '2026-09-01T09:00',
-      endDate: '2026-09-01T10:30',
-      category: 'work',
-      location: 'Apple Park, Cupertino',
-      notes: 'Final review of iOS & macOS Calendar app build with haptics and animations.'
-    },
-    {
-      id: 'evt-2',
-      title: 'Design System Alignment',
-      startDate: '2026-09-01T14:00',
-      endDate: '2026-09-01T15:00',
-      category: 'ideas',
-      location: 'Zoom Sync',
-      notes: 'Reviewing smooth slide and fade transitions.'
-    },
-    {
-      id: 'evt-3',
-      title: 'Evening Run & Fitness',
-      startDate: '2026-09-02T18:00',
-      endDate: '2026-09-02T19:00',
-      category: 'health',
-      location: 'Sunset Trail',
-      notes: 'Target 5k cardio run.'
-    },
-    {
-      id: 'evt-4',
-      title: 'Coffee with Alex',
-      startDate: '2026-09-05T11:00',
-      endDate: '2026-09-05T12:00',
-      category: 'personal',
-      location: 'Blue Bottle Coffee',
-      notes: 'Catching up on weekend plans.'
-    },
-    {
-      id: 'evt-5',
-      title: 'Quarterly Planning Sprint',
-      startDate: '2026-09-14T10:00',
-      endDate: '2026-09-14T12:00',
-      category: 'work',
-      location: 'Main Conference Room',
-      notes: 'Roadmap planning for Q4.'
-    }
-  ];
+  const INITIAL_EVENTS = [];
 
   // ==========================================
   // 3. CALENDAR STATE MANAGER
@@ -140,10 +94,13 @@
     loadEvents() {
       const stored = localStorage.getItem('lumina_calendar_events');
       if (stored) {
-        try { return JSON.parse(stored); } catch (e) {}
+        try {
+          const parsed = JSON.parse(stored);
+          // Filter out any old premade sample events
+          return parsed.filter(e => !e.id.startsWith('evt-'));
+        } catch (e) {}
       }
-      localStorage.setItem('lumina_calendar_events', JSON.stringify(INITIAL_EVENTS));
-      return INITIAL_EVENTS;
+      return [];
     }
 
     saveEvents() {
@@ -470,7 +427,16 @@
     const filteredEvents = state.getFilteredEvents();
 
     if (filteredEvents.length === 0) {
-      DOM.agendaList.innerHTML = '<div style="text-align: center; color: var(--text-tertiary); padding: 40px;">No events scheduled</div>';
+      DOM.agendaList.innerHTML = `
+        <div style="text-align: center; color: var(--text-tertiary); padding: 60px 20px;">
+          <div style="font-size: 2.5rem; margin-bottom: 12px;">☁️</div>
+          <h3 style="color: var(--text-primary); margin-bottom: 8px;">No iCloud Events Loaded</h3>
+          <p style="font-size: 0.88rem; color: var(--text-secondary); max-width: 340px; margin: 0 auto 16px auto;">
+            Connect your Apple ID or iCloud Webcal link in the top header to sync your live iCloud calendars.
+          </p>
+          <button onclick="document.getElementById('icloudModal').classList.remove('hidden')" class="primary-btn haptic-tap" style="margin: 0 auto; display: inline-flex;">Sync iCloud Calendar</button>
+        </div>
+      `;
       return;
     }
 
@@ -790,57 +756,15 @@
         }
       }
 
-      // 3. Guaranteed iCloud Account Sync Feed for email accounts
+      // If no events found
       if (newEvents.length === 0) {
-        const userPrefix = email ? email.split('@')[0] : 'Apple ID';
-        calendarName = `iCloud (${email || 'iCloud User'})`;
-        newEvents = [
-          {
-            id: 'icloud-sync-1',
-            title: ` ${userPrefix}'s iCloud Design Sync`,
-            startDate: '2026-09-02T11:00',
-            endDate: '2026-09-02T12:30',
-            category: 'work',
-            location: 'Apple Park / FaceTime',
-            notes: 'Synced live from iCloud Calendar'
-          },
-          {
-            id: 'icloud-sync-2',
-            title: ` ${userPrefix}'s Personal Event`,
-            startDate: '2026-09-06T15:30',
-            endDate: '2026-09-06T17:00',
-            category: 'personal',
-            location: 'Cupertino',
-            notes: 'Synced live from iCloud Calendar'
-          },
-          {
-            id: 'icloud-sync-3',
-            title: ` iCloud Doctor Appointment`,
-            startDate: '2026-09-10T09:00',
-            endDate: '2026-09-10T10:00',
-            category: 'health',
-            location: 'Sutter Health Clinic',
-            notes: 'Synced live from iCloud Calendar'
-          },
-          {
-            id: 'icloud-sync-4',
-            title: ` iCloud Ideas & Roadmap Review`,
-            startDate: '2026-09-18T14:00',
-            endDate: '2026-09-18T15:30',
-            category: 'ideas',
-            location: 'Cupertino Main Office',
-            notes: 'Synced live from iCloud Calendar'
-          }
-        ];
+        showToast('No events found for this iCloud account/feed. Please check Apple ID or Webcal URL.');
+      } else {
+        // Clear any old data and load only authentic iCloud events
+        state.events = newEvents;
+        state.saveEvents();
+        showToast(`Loaded ${newEvents.length} iCloud calendar events!`);
       }
-
-      // Merge into active state events
-      newEvents.forEach(evt => {
-        if (!state.events.some(e => e.id === evt.id || (e.title === evt.title && e.startDate === evt.startDate))) {
-          state.events.push(evt);
-        }
-      });
-      state.saveEvents();
 
       // Display Connected iCloud Calendar list
       if (DOM_icloudCalendarList) {
@@ -851,12 +775,11 @@
               <h3 style="color: var(--accent-apple-blue);">${calendarName}</h3>
               <p>${newEvents.length} iCloud calendar events active</p>
             </div>
-            <span class="status-pill connected" style="background: var(--category-personal); color: #fff;">Synced</span>
+            <span class="status-pill connected" style="background: var(--category-personal); color: #fff;">${newEvents.length > 0 ? 'Synced' : 'Active'}</span>
           </div>
         `;
       }
 
-      showToast(`Loaded ${newEvents.length} iCloud calendar events!`);
       renderCurrentView();
     });
   }
