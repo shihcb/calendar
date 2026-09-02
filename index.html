@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Lumina Calendar — Minimalist iOS & macOS Calendar</title>
+  
+  <!-- iOS PWA Meta -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#0a0a0c">
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%23007AFF'/><text x='50' y='65' font-size='48' text-anchor='middle' fill='white' font-family='system-ui'>📅</text></svg>">
+
+  <!-- Fonts & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="dark-mode">
+
+  <!-- Ambient Dynamic Background Glows -->
+  <div class="ambient-glow glow-1"></div>
+  <div class="ambient-glow glow-2"></div>
+
+  <!-- Main App Layout -->
+  <div id="app" class="app-container">
+    
+    <!-- Glassmorphic Top Navigation Header -->
+    <header class="top-header glass-panel">
+      <div class="header-left">
+        <div class="logo-badge">
+          <span class="logo-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="5" ry="5"></rect>
+              <line x1="16" y1="2" x2="16" y2="6"></line>
+              <line x1="8" y1="2" x2="8" y2="6"></line>
+              <line x1="3" y1="10" x2="21" y2="10"></line>
+            </svg>
+          </span>
+          <span class="logo-text">Lumina</span>
+        </div>
+
+        <div class="date-navigator">
+          <button id="prevBtn" class="nav-btn haptic-tap" title="Previous Period" aria-label="Previous">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+          </button>
+          
+          <button id="todayBtn" class="today-pill haptic-tap" title="Jump to Today">Today</button>
+          
+          <button id="nextBtn" class="nav-btn haptic-tap" title="Next Period" aria-label="Next">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </button>
+
+          <h1 id="currentMonthYear" class="month-title">September 2026</h1>
+        </div>
+      </div>
+
+      <div class="header-center">
+        <!-- View Switcher Segmented Control -->
+        <div class="segmented-control glass-subpanel">
+          <button class="segment-btn active haptic-tap" data-view="month">Month</button>
+          <button class="segment-btn haptic-tap" data-view="week">Week</button>
+          <button class="segment-btn haptic-tap" data-view="day">Day</button>
+          <button class="segment-btn haptic-tap" data-view="agenda">Agenda</button>
+        </div>
+      </div>
+
+      <div class="header-right">
+        <!-- Search Bar -->
+        <div class="search-box glass-subpanel">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          <input type="text" id="searchInput" placeholder="Search events..." autocomplete="off">
+          <button id="clearSearchBtn" class="clear-search hidden haptic-tap">&times;</button>
+        </div>
+
+        <!-- Category Tag Filter Dropdown -->
+        <div class="category-filter-wrapper">
+          <select id="categoryFilter" class="category-select glass-subpanel haptic-tap">
+            <option value="all">All Tags</option>
+            <option value="work">🔵 Work</option>
+            <option value="personal">🟢 Personal</option>
+            <option value="health">🟣 Health & Sport</option>
+            <option value="ideas">🟠 Ideas</option>
+          </select>
+        </div>
+
+        <!-- iCloud / Sync Button -->
+        <button id="icloudSyncBtn" class="icon-action-btn glass-subpanel haptic-tap" title="iCloud & Calendar Sync" aria-label="iCloud Sync">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"></path>
+          </svg>
+          <span class="sync-indicator"></span>
+        </button>
+
+        <!-- Haptic Sound Toggle -->
+        <button id="hapticToggleBtn" class="icon-action-btn glass-subpanel haptic-tap active" title="Toggle Haptic Feedback" aria-label="Haptic Settings">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2v20M17 5v14M7 5v14M22 9v6M2 9v6"></path>
+          </svg>
+        </button>
+
+        <!-- New Event Quick Action -->
+        <button id="createEventBtn" class="primary-btn haptic-tap">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          <span>New Event</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Calendar Content Viewport with Slow Animation Layer -->
+    <main id="calendarViewport" class="calendar-viewport">
+      
+      <!-- Month View Container -->
+      <div id="monthView" class="calendar-view month-view active-view">
+        <div class="weekday-header">
+          <div class="weekday">Sun</div>
+          <div class="weekday">Mon</div>
+          <div class="weekday">Tue</div>
+          <div class="weekday">Wed</div>
+          <div class="weekday">Thu</div>
+          <div class="weekday">Fri</div>
+          <div class="weekday">Sat</div>
+        </div>
+        <div id="monthGrid" class="month-grid"></div>
+      </div>
+
+      <!-- Week View Container -->
+      <div id="weekView" class="calendar-view week-view hidden-view">
+        <div id="weekHeader" class="week-header-row"></div>
+        <div class="week-body-scroll">
+          <div id="weekTimeColumn" class="time-column"></div>
+          <div id="weekDaysGrid" class="week-days-grid"></div>
+        </div>
+      </div>
+
+      <!-- Day View Container -->
+      <div id="dayView" class="calendar-view day-view hidden-view">
+        <div id="dayHeaderCard" class="day-header-card glass-panel"></div>
+        <div class="day-body-scroll">
+          <div id="dayTimeColumn" class="time-column"></div>
+          <div id="dayHoursGrid" class="day-hours-grid"></div>
+        </div>
+      </div>
+
+      <!-- Agenda View Container -->
+      <div id="agendaView" class="calendar-view agenda-view hidden-view">
+        <div id="agendaList" class="agenda-list"></div>
+      </div>
+
+    </main>
+
+    <!-- Mobile Floating Add Event Button -->
+    <button id="mobileFabBtn" class="mobile-fab haptic-tap" title="Add New Event" aria-label="Add Event">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+    </button>
+
+    <!-- Event Detail & Creation Modal -->
+    <div id="eventModal" class="modal-backdrop hidden">
+      <div class="modal-card glass-panel fade-scale-in">
+        <div class="modal-header">
+          <h2 id="modalTitle">New Event</h2>
+          <button id="closeModalBtn" class="close-btn haptic-tap" aria-label="Close">&times;</button>
+        </div>
+        <form id="eventForm" class="event-form">
+          <input type="hidden" id="eventId">
+
+          <div class="form-group">
+            <label for="eventTitleInput">Title</label>
+            <input type="text" id="eventTitleInput" placeholder="Event Title (e.g. Design Sync)" required autocomplete="off">
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="eventStartDate">Start Date & Time</label>
+              <input type="datetime-local" id="eventStartDate" required>
+            </div>
+            <div class="form-group">
+              <label for="eventEndDate">End Date & Time</label>
+              <input type="datetime-local" id="eventEndDate" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="eventCategory">Category & Color</label>
+              <select id="eventCategory" class="custom-select">
+                <option value="work">🔵 Work (Indigo)</option>
+                <option value="personal">🟢 Personal (Emerald)</option>
+                <option value="health">🟣 Health & Sport (Purple)</option>
+                <option value="ideas">🟠 Ideas (Amber)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="eventLocation">Location</label>
+              <input type="text" id="eventLocation" placeholder="Cupertino / Apple Park / Zoom">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="eventNotes">Notes</label>
+            <textarea id="eventNotes" rows="3" placeholder="Add details, links, or notes..."></textarea>
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" id="deleteEventBtn" class="danger-btn hidden haptic-tap">Delete Event</button>
+            <div class="modal-footer-right">
+              <button type="button" id="cancelModalBtn" class="secondary-btn haptic-tap">Cancel</button>
+              <button type="submit" id="saveEventBtn" class="primary-btn haptic-tap">Save Event</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- iCloud & Native Calendar Connector Modal -->
+    <div id="icloudModal" class="modal-backdrop hidden">
+      <div class="modal-card glass-panel fade-scale-in">
+        <div class="modal-header">
+          <div class="icloud-modal-title">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#007AFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"></path>
+            </svg>
+            <h2>iCloud & Native Apple Calendar</h2>
+          </div>
+          <button id="closeIcloudModalBtn" class="close-btn haptic-tap" aria-label="Close">&times;</button>
+        </div>
+
+        <div class="icloud-body">
+          <div class="icloud-banner">
+            <p>Sync your calendar events seamlessly with Apple iCloud CalDAV or native iOS/macOS EventKit.</p>
+          </div>
+
+          <div class="sync-options">
+            <div class="sync-option-card glass-subpanel active-sync">
+              <div class="sync-icon"></div>
+              <div class="sync-info">
+                <h3>Native Apple Calendar (EventKit)</h3>
+                <p>On iOS and macOS devices, open our native SwiftUI app build to sync automatically with Apple Calendar without logins.</p>
+              </div>
+              <span class="status-pill connected">Active</span>
+            </div>
+
+            <div class="sync-option-card glass-subpanel">
+              <div class="sync-icon">☁️</div>
+              <div class="sync-info">
+                <h3>iCloud CalDAV Direct Account</h3>
+                <p>Sign in using your Apple ID and CalDAV App-Specific Password for direct cloud syncing.</p>
+              </div>
+            </div>
+          </div>
+
+          <form id="icloudForm" class="icloud-form">
+            <div class="form-group">
+              <label for="icloudEmail">Apple ID (iCloud Email)</label>
+              <input type="email" id="icloudEmail" placeholder="username@icloud.com" autocomplete="username">
+            </div>
+
+            <div class="form-group">
+              <label for="icloudPassword">App-Specific Password</label>
+              <input type="password" id="icloudPassword" placeholder="xxxx-xxxx-xxxx-xxxx" autocomplete="current-password">
+              <small class="help-text">Generate an App-Specific Password at <a href="https://appleid.apple.com" target="_blank" rel="noopener">appleid.apple.com</a></small>
+            </div>
+
+            <div class="modal-footer">
+              <button type="button" id="exportIcsBtn" class="secondary-btn haptic-tap">Export .ics</button>
+              <button type="submit" id="saveIcloudBtn" class="primary-btn haptic-tap">Connect iCloud</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Haptic Toast Notification -->
+    <div id="toastNotification" class="toast-notification hidden">
+      <span id="toastMessage">Event saved</span>
+    </div>
+
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
