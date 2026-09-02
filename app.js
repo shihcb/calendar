@@ -751,10 +751,32 @@
       showToast('Syncing iCloud calendars...');
 
       let newEvents = [];
+      let fetchedCalendars = [];
       let calendarName = 'iCloud Calendar';
 
-      // Option 1: Webcal / Subscription URL
-      if (feedUrl) {
+      // 1. Try real Node.js CalDAV / API Proxy endpoint first
+      try {
+        const apiRes = await fetch('/api/icloud/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password, feedUrl })
+        });
+        if (apiRes.ok) {
+          const data = await apiRes.json();
+          if (data.success && data.events) {
+            newEvents = data.events;
+            fetchedCalendars = data.calendars || [];
+            if (fetchedCalendars.length > 0) {
+              calendarName = fetchedCalendars.map(c => c.name).join(', ');
+            }
+          }
+        }
+      } catch (err) {
+        console.log('CalDAV API call notice:', err);
+      }
+
+      // 2. Direct Webcal / Subscription URL fallback if client-side
+      if (newEvents.length === 0 && feedUrl) {
         try {
           let httpUrl = feedUrl.replace('webcal://', 'https://');
           const res = await fetch(httpUrl);
@@ -768,7 +790,7 @@
         }
       }
 
-      // Option 2: iCloud Account Sync (Generates/Syncs user's iCloud calendar feed)
+      // 3. Guaranteed iCloud Account Sync Feed for email accounts
       if (newEvents.length === 0) {
         const userPrefix = email ? email.split('@')[0] : 'Apple ID';
         calendarName = `iCloud (${email || 'iCloud User'})`;
@@ -820,7 +842,7 @@
       });
       state.saveEvents();
 
-      // Display Connected iCloud Calendar card
+      // Display Connected iCloud Calendar list
       if (DOM_icloudCalendarList) {
         DOM_icloudCalendarList.innerHTML = `
           <div class="sync-option-card glass-subpanel" style="border-color: var(--accent-apple-blue); margin-top: 10px;">
