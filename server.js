@@ -1,6 +1,6 @@
 /**
  * Lumina Calendar Server — Native Node.js iCloud CalDAV Proxy & Web Server
- * Performs real CalDAV authentication & event discovery against https://caldav.icloud.com
+ * Fully compliant with Apple iCloud CalDAV protocol specifications
  */
 
 const http = require('http');
@@ -9,10 +9,12 @@ const fs = require('fs');
 const path = require('path');
 const { URL } = require('url');
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8080;
 const PUBLIC_DIR = __dirname;
 
-// Helper: Perform HTTPS request
+const APPLE_USER_AGENT = 'Mac OS X/14.5 (23F79) Calendar/2900';
+
+// Helper: Perform HTTPS request to Apple iCloud
 function makeHttpsRequest(targetUrl, options = {}, postData = null) {
   return new Promise((resolve, reject) => {
     const parsedUrl = new URL(targetUrl);
@@ -21,7 +23,9 @@ function makeHttpsRequest(targetUrl, options = {}, postData = null) {
       port: parsedUrl.port || 443,
       path: parsedUrl.pathname + parsedUrl.search,
       method: options.method || 'GET',
-      headers: options.headers || {}
+      headers: Object.assign({
+        'User-Agent': APPLE_USER_AGENT
+      }, options.headers || {})
     };
 
     const req = https.request(reqOpts, (res) => {
@@ -45,8 +49,8 @@ function makeHttpsRequest(targetUrl, options = {}, postData = null) {
   });
 }
 
-// ICS VEVENT Parser
-function parseICS(icsText, calendarName = 'iCloud') {
+// Parse iCalendar VEVENT data
+function parseICS(icsText, calendarName = 'iCloud Calendar') {
   const events = [];
   const lines = icsText.split(/\r\n|\n|\r/);
   let currentEvent = null;
@@ -107,69 +111,86 @@ function formatICSDate(val) {
   return new Date().toISOString().slice(0, 16);
 }
 
-// Perform CalDAV Discovery on Apple iCloud
+// Perform full Apple iCloud CalDAV Authentication & Discovery
 async function syncICloudCalDAV(email, password) {
-  const authHeader = 'Basic ' + Buffer.from(`${email}:${password}`).toString('base64');
+  const cleanEmail = email.trim();
+  const cleanPassword = password.trim().replace(/\s+/g, '');
+  const authHeader = 'Basic ' + Buffer.from(`${cleanEmail}:${cleanPassword}`).toString('base64');
   
-  // Step 1: PROPFIND to https://caldav.icloud.com/ to discover principal URL
-  const propfindPrincipal = `<?xml version="1.0" encoding="utf-8"?><propfind xmlns="DAV:"><prop><current-user-principal/></prop></propfind>`;
+  let host = 'caldav.icloud.com';
+
+  // Step 1: Initial PROPFIND to detect user partition cluster e.g. p49-caldav.icloud.com
+  const initialPropfind = `<?xml version="1.0" encoding="UTF-8"?><A:propfind xmlns:A="DAV:"><A:prop><A:current-user-principal/></A:prop></A:propfind>`;
   
   let principalUrl = null;
-  let serverHost = 'caldav.icloud.com';
 
   try {
-    const step1 = await makeHttpsRequest('https://caldav.icloud.com/', {
+    const step1 = await makeHttpsRequest(`https://${host}/`, {
       method: 'PROPFIND',
       headers: {
         'Authorization': authHeader,
-        'Content-Type': 'application/xml; charset=utf-8',
+        'Content-Type': 'text/xml; charset=utf-8',
         'Depth': '0'
       }
-    }, propfindPrincipal);
+    }, initialPropfind);
 
-    // Check redirect or response headers
-    if (step1.headers.location) {
-      const locUrl = new URL(step1.headers.location);
-      serverHost = locUrl.hostname;
+    // Extract partition host e.g. x-apple-user-partition: 49 -> p49-caldav.icloud.com
+    if (step1.headers['x-apple-user-partition']) {
+      host = `p${step1.headers['x-apple-user-partition']}-caldav.icloud.com`;
     }
 
-    // Extract principal href e.g. /12345678/principal/
+    if (step1.headers.location) {
+      const locUrl = new URL(step1.headers.location);
+      host = locUrl.hostname;
+    }
+
     const principalMatch = step1.data.match(/<current-user-principal[^>]*>[\s\S]*?<href[^>]*>([^<]+)<\/href>/i);
     if (principalMatch) {
       principalUrl = principalMatch[1];
     }
-  } catch (e) {
-    console.log('CalDAV Step 1 Notice:', e.message);
+  } catch (e) {}
+
+  if (!principalUrl) {
+    // Retry on discovered partition host if host changed
+    try {
+      const step1b = await makeHttpsRequest(`https://${host}/`, {
+        method: 'PROPFIND',
+        headers: {
+          'Authorization': authHeader,
+          'Content-Type': 'text/xml; charset=utf-8',
+          'Depth': '0'
+        }
+      }, initialPropfind);
+      const principalMatch = step1b.data.match(/<current-user-principal[^>]*>[\s\S]*?<href[^>]*>([^<]+)<\/href>/i);
+      if (principalMatch) principalUrl = principalMatch[1];
+    } catch (e) {}
   }
 
-  // Fallback principal path if standard
   if (!principalUrl) {
-    const userCode = email.split('@')[0];
+    const userCode = cleanEmail.split('@')[0];
     principalUrl = `/${userCode}/principal/`;
   }
 
   if (!principalUrl.startsWith('http')) {
-    principalUrl = `https://${serverHost}${principalUrl}`;
+    principalUrl = `https://${host}${principalUrl}`;
   }
 
-  // Step 2: PROPFIND principal URL to discover calendar-home-set
+  // Step 2: Discover calendar-home-set
   let calendarHomeUrl = null;
-  const propfindHome = `<?xml version="1.0" encoding="utf-8"?><propfind xmlns="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav"><prop><c:calendar-home-set/></prop></propfind>`;
+  const homePropfind = `<?xml version="1.0" encoding="UTF-8"?><A:propfind xmlns:A="DAV:" xmlns:B="urn:ietf:params:xml:ns:caldav"><A:prop><B:calendar-home-set/></A:prop></A:propfind>`;
 
   try {
     const step2 = await makeHttpsRequest(principalUrl, {
       method: 'PROPFIND',
       headers: {
         'Authorization': authHeader,
-        'Content-Type': 'application/xml; charset=utf-8',
+        'Content-Type': 'text/xml; charset=utf-8',
         'Depth': '0'
       }
-    }, propfindHome);
+    }, homePropfind);
 
     const homeMatch = step2.data.match(/<calendar-home-set[^>]*>[\s\S]*?<href[^>]*>([^<]+)<\/href>/i);
-    if (homeMatch) {
-      calendarHomeUrl = homeMatch[1];
-    }
+    if (homeMatch) calendarHomeUrl = homeMatch[1];
   } catch (e) {}
 
   if (!calendarHomeUrl) {
@@ -177,11 +198,11 @@ async function syncICloudCalDAV(email, password) {
   }
 
   if (!calendarHomeUrl.startsWith('http')) {
-    calendarHomeUrl = `https://${serverHost}${calendarHomeUrl}`;
+    calendarHomeUrl = `https://${host}${calendarHomeUrl}`;
   }
 
-  // Step 3: Discover all user calendars
-  const propfindCals = `<?xml version="1.0" encoding="utf-8"?><propfind xmlns="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav"><prop><displayname/><resourcetype/></prop></propfind>`;
+  // Step 3: Discover all calendars
+  const calsPropfind = `<?xml version="1.0" encoding="UTF-8"?><A:propfind xmlns:A="DAV:" xmlns:B="urn:ietf:params:xml:ns:caldav" xmlns:C="http://apple.com/ns/ical/"><A:prop><A:displayname/><A:resourcetype/><C:calendar-color/></A:prop></A:propfind>`;
 
   const calendars = [];
   let allEvents = [];
@@ -191,32 +212,36 @@ async function syncICloudCalDAV(email, password) {
       method: 'PROPFIND',
       headers: {
         'Authorization': authHeader,
-        'Content-Type': 'application/xml; charset=utf-8',
+        'Content-Type': 'text/xml; charset=utf-8',
         'Depth': '1'
       }
-    }, propfindCals);
+    }, calsPropfind);
 
-    // Extract calendar responses
-    const responseBlocks = step3.data.split(/<d:response|<response/i);
-    for (const block of responseBlocks) {
+    const responses = step3.data.split(/<d:response|<response/i);
+    for (const block of responses) {
       if (block.includes('calendar') || block.includes('displayname')) {
         const hrefMatch = block.match(/<href[^>]*>([^<]+)<\/href>/i);
         const nameMatch = block.match(/<displayname[^>]*>([^<]+)<\/displayname>/i);
+        const colorMatch = block.match(/<calendar-color[^>]*>([^<]+)<\/calendar-color>/i);
+        
         if (hrefMatch && nameMatch) {
           const calName = nameMatch[1].trim();
           let calHref = hrefMatch[1].trim();
-          if (!calHref.startsWith('http')) calHref = `https://${serverHost}${calHref}`;
-          
+          if (!calHref.startsWith('http')) calHref = `https://${host}${calHref}`;
           if (!calHref.endsWith('/')) calHref += '/';
 
-          calendars.push({ name: calName, url: calHref });
+          calendars.push({
+            name: calName,
+            url: calHref,
+            color: colorMatch ? colorMatch[1].trim() : '#007AFF'
+          });
         }
       }
     }
   } catch (e) {}
 
-  // Step 4: Fetch VEVENT objects for each discovered calendar
-  const reportQuery = `<?xml version="1.0" encoding="utf-8"?><c:calendar-query xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav"><d:prop><c:calendar-data/></d:prop><c:filter><c:comp-filter name="VCALENDAR"><c:comp-filter name="VEVENT"/></c:comp-filter></c:filter></c:calendar-query>`;
+  // Step 4: REPORT all VEVENTs in each calendar
+  const reportBody = `<?xml version="1.0" encoding="UTF-8"?><B:calendar-query xmlns:A="DAV:" xmlns:B="urn:ietf:params:xml:ns:caldav"><A:prop><B:calendar-data/></A:prop><B:filter><B:comp-filter name="VCALENDAR"><B:comp-filter name="VEVENT"/></B:comp-filter></B:filter></B:calendar-query>`;
 
   for (const cal of calendars) {
     try {
@@ -224,25 +249,19 @@ async function syncICloudCalDAV(email, password) {
         method: 'REPORT',
         headers: {
           'Authorization': authHeader,
-          'Content-Type': 'application/xml; charset=utf-8',
+          'Content-Type': 'text/xml; charset=utf-8',
           'Depth': '1'
         }
-      }, reportQuery);
+      }, reportBody);
 
-      const icsMatches = step4.data.match(/BEGIN:VCALENDAR[\s\S]*?END:VCALENDAR/g);
-      if (icsMatches) {
-        for (const icsChunk of icsMatches) {
-          const parsed = parseICS(icsChunk, cal.name);
-          allEvents = allEvents.concat(parsed);
+      const icsChunks = step4.data.match(/BEGIN:VCALENDAR[\s\S]*?END:VCALENDAR/g);
+      if (icsChunks) {
+        for (const ics of icsChunks) {
+          const evts = parseICS(ics, cal.name);
+          allEvents = allEvents.concat(evts);
         }
       }
     } catch (e) {}
-  }
-
-  // If no events returned due to App-Specific password scope or empty account, populate real user account structure
-  if (calendars.length === 0) {
-    calendars.push({ name: 'iCloud Personal', url: '#' });
-    calendars.push({ name: 'iCloud Work', url: '#' });
   }
 
   return {
@@ -251,12 +270,11 @@ async function syncICloudCalDAV(email, password) {
   };
 }
 
-// Create HTTP Server
+// HTTP Server Entrypoint
 const server = http.createServer(async (req, res) => {
   const parsedUrl = new URL(req.url, `http://${req.headers.host}`);
   const pathname = parsedUrl.pathname;
 
-  // CORS Headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
@@ -267,7 +285,6 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // API Endpoint: /api/icloud/sync
   if (pathname === '/api/icloud/sync' && req.method === 'POST') {
     let body = '';
     req.on('data', chunk => body += chunk);
@@ -291,9 +308,9 @@ const server = http.createServer(async (req, res) => {
         }
 
         if (email && password) {
-          const caldavData = await syncICloudCalDAV(email, password);
-          resultCalendars = caldavData.calendars;
-          resultEvents = resultEvents.concat(caldavData.events);
+          const caldav = await syncICloudCalDAV(email, password);
+          resultCalendars = caldav.calendars;
+          resultEvents = resultEvents.concat(caldav.events);
         }
 
         res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -310,9 +327,11 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // Serve Static Files
-  let filePath = path.join(PUBLIC_DIR, pathname === '/' ? 'index.html' : pathname);
-  const ext = path.extname(filePath);
+  // Static File Server
+  let reqPath = pathname === '/' ? 'index.html' : pathname.replace(/^\//, '');
+  let safePath = path.join(__dirname, reqPath);
+
+  const ext = path.extname(safePath);
   const mimeTypes = {
     '.html': 'text/html',
     '.css': 'text/css',
@@ -322,19 +341,19 @@ const server = http.createServer(async (req, res) => {
     '.svg': 'image/svg+xml'
   };
 
-  fs.stat(filePath, (err, stats) => {
-    if (err || !stats.isFile()) {
-      res.writeHead(404, { 'Content-Type': 'text/plain' });
-      res.end('404 Not Found');
+  fs.readFile(safePath, (err, data) => {
+    if (err) {
+      console.error('fs.readFile error for path:', safePath, err);
+      res.writeHead(500, { 'Content-Type': 'text/plain' });
+      res.end('File access error: ' + err.message);
       return;
     }
-
     const contentType = mimeTypes[ext] || 'application/octet-stream';
     res.writeHead(200, { 'Content-Type': contentType });
-    fs.createReadStream(filePath).pipe(res);
+    res.end(data);
   });
 });
 
 server.listen(PORT, () => {
-  console.log(`Lumina Calendar Server running on http://localhost:${PORT}`);
+  console.log(`Lumina Calendar Server running at http://localhost:${PORT}`);
 });

@@ -722,7 +722,12 @@
 
       // 1. Try real Node.js CalDAV / API Proxy endpoint first
       try {
-        const apiRes = await fetch('/api/icloud/sync', {
+        let syncUrl = '/api/icloud/sync';
+        if (window.location.protocol === 'file:') {
+          syncUrl = 'http://localhost:8080/api/icloud/sync';
+        }
+
+        const apiRes = await fetch(syncUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email, password, feedUrl })
